@@ -1,48 +1,42 @@
 # parquet-tools
 
-[![PyPI version](https://img.shields.io/pypi/v/trysac-parquet-tools)](https://pypi.org/project/trysac-parquet-tools/)
-[![License: MIT](https://img.shields.io/pypi/l/trysac-parquet-tools)](LICENSE)
-[![CI](https://github.com/Trysac/u167-parquet-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/Trysac/u167-parquet-tools/actions/workflows/ci.yml)
+Inspect, validate, and convert Parquet files with bounded memory and schema checking.
 
-Inspect, validate and convert Parquet files: schema, row groups and column statistics, expected-schema checks with nullability, and bounded conversion to and from CSV or JSONL
+## The Problem
+Data engineers frequently receive Parquet files from external sources and require a rapid way to understand their structure. Verifying that the schema matches pipeline expectations and ensuring column nullability constraints are met usually requires complex manual usage of the `pyarrow` API, while ad-hoc scripts often inadvertently load entire datasets into memory. This library wraps these operations in a typed, bounded API and command-line utility.
 
-## Problem
+## Installation
 
-Describe in two or three sentences the concrete problem this utility solves, who hits it, and what
-they do today without it. Replace this paragraph when the first real feature lands.
-
-## Install
-
-```sh
+```bash
 pip install trysac-parquet-tools
-# or
-uv add trysac-parquet-tools
 ```
 
-Requires Python 3.10 or newer. No runtime dependencies.
-
-## Usage
+## Usage Example
 
 ```python
-import parquet_tools
+import pyarrow as pa
+import pyarrow.parquet as pq
+from parquet_tools import ExpectedColumn, inspect, validate
 
-# normalize() trims surrounding whitespace and lower-cases the text.
-print(parquet_tools.normalize("  Hello World "))  # -> "hello world"
-
-# Blank input is rejected explicitly instead of returning an empty string.
-try:
-    parquet_tools.normalize("   ")
-except ValueError as exc:
-    print(f"rejected: {exc}")
+pq.write_table(pa.table({"id": [1, 2], "name": ["a", None]}), "data.parquet")
+info = inspect("data.parquet")
+print(f"{info.num_rows} rows, {len(info.columns)} columns")
+issues = validate("data.parquet", {"id": "int64", "name": ExpectedColumn("string", nullable=False)})
+for issue in issues:
+    print(f"[{issue.code}] {issue.column}: {issue.detail}")
 ```
 
-## Documentation
+## Public API Summary
 
-- [Architecture](docs/ARCHITECTURE.md) and [decisions](docs/decisions/)
-- [Testing](docs/TESTING.md) and [security](docs/SECURITY.md)
-- [Project record](docs/PROJECT.md) and [stack](docs/STACK.md)
-- [Changelog](CHANGELOG.md) and [contributing guide](CONTRIBUTING.md)
+- `inspect(path, *, max_file_bytes=1073741824) -> FileInfo`: Inspect Parquet metadata, row groups, and statistics. Raises `ParquetToolError` if file access fails, the file is too large, or reading fails.
+- `validate(path, expected, *, allow_extra=False) -> list[Issue]`: Validates columns, types, and nullability against an expected schema. Raises `ParquetToolError` for IO or invalid file issues.
+- `to_rows(path, *, columns=None, max_rows=100000, batch_size=10000) -> Iterator[dict]`: Streams records; raises `ParquetToolError` (code `too_many_rows`) if limit exceeded.
+- `convert(path, out_path, *, max_rows=1000000) -> int`: Bounded conversion to CSV or JSONL. Raises `ParquetToolError` (code `unsupported_format`) for invalid output extensions or `unsupported_type` for complex types.
+- `from_csv(csv_path, parquet_path, schema, *, max_rows=1000000) -> int`: Imports CSV to Parquet using a specific schema map. Raises `ParquetToolError` (code `invalid_value`, `too_many_rows`) for schema or row errors.
 
-## License
+## Why not <best-known alternative>?
+Unlike ad-hoc scripts or one-line `pyarrow` calls, `parquet-tools` provides a small, typed, and consistent API designed specifically for pipeline integration, with built-in memory bounds (`max_rows`, `max_file_bytes`) to prevent production OOM failures.
 
-[MIT](LICENSE) (c) 2026 Miguel Gomez
+## Security
+
+See [docs/SECURITY.md](docs/SECURITY.md).

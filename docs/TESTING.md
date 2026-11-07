@@ -1,20 +1,11 @@
-# Testing
+# Testing Strategy
 
-## Running
+Tests are located in `tests/test_parquet_tools.py` and cover the following:
 
-```sh
-uv run pytest --cov=parquet_tools   # tests with coverage report
-uv run python scripts/check.py      # every gate, as CI and the factory run it
-```
-
-## Policy
-
-- Branch coverage of `src/parquet_tools` must stay at or above 80 %; the gate fails below it.
-- Tests exercise the public API (`import parquet_tools`) and assert every observable effect:
-  return values, raised exceptions and their messages.
-- Each bug fix starts with a failing test that reproduces it.
-- Tests are deterministic: no network, no wall clock, no dependence on test order.
-
-## Layout
-
-`tests/test_<module>.py` mirrors each public module. Shared fixtures go in `tests/conftest.py`.
+- **`test_acceptance_item_1_inspect`**: Verifies inspection metadata (num_rows, num_row_groups, column-level statistics for `int64` and `string` types, null_count, and compression).
+- **`test_acceptance_item_2_validate_schema_and_missing`**: Verifies `validate` behavior with exact schema matches, type mismatches (e.g., `int32` vs `int64`), missing columns, and extra columns.
+- **`test_acceptance_item_3_validate_nullability`**: Verifies data-driven nullability checks against nullable/non-nullable columns.
+- **`test_to_rows`**: Validates row streaming, column projection, and error handling for missing columns or excessive rows.
+- **`test_convert`**: Verifies CSV/JSONL conversion outputs, row counting, and handling of dates/times.
+- **`test_from_csv`**: Verifies CSV import with strict typing, boolean case-insensitivity, empty string handling as nulls, and line-specific error reporting.
+- **`test_file_guards`**: Verifies `ParquetToolError` code `invalid_parquet` for corrupt files and `file_too_large` for files exceeding the size limit.

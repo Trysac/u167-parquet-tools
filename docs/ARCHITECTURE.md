@@ -1,29 +1,15 @@
 # Architecture
 
-## Purpose
+`parquet-tools` is an enterprise-grade Python library and CLI for inspecting, validating, and converting Apache Parquet files.
 
-`trysac-parquet-tools` is a small, dependency-free Python library: Inspect, validate and convert Parquet files: schema, row groups and column statistics, expected-schema checks with nullability, and bounded conversion to and from CSV or JSONL
+## Component Overview
 
-## Shape
+- `parquet_tools.core`: Implements the core functional primitives: `inspect`, `validate`, `to_rows`, `convert`, and `from_csv`.
+- `parquet_tools.__main__`: CLI wrapper utilizing standard `argparse` returning standard exit status codes (0 = ok, 1 = issues found, 2 = IO/usage error).
+- `parquet_tools.ParquetToolError`: Standardized error envelope supporting deterministic, machine-readable error codes (`invalid_parquet`, `file_too_large`, `missing_column`, `too_many_rows`, `invalid_value`, `unsupported_type`, `unsupported_format`).
 
-```text
-caller code --> parquet_tools (public API in __init__.py)
-                    |
-                    +-- pure functions, no I/O, no global state
-```
+## Memory & Safety Guarantees
 
-- **Public API**: the names listed in `__all__` of `src/parquet_tools/__init__.py`. Anything else is
-  internal and may change without a major version.
-- **Errors**: invalid input raises built-in exceptions (`ValueError`, `TypeError`) with a clear
-  message; the library never prints or exits.
-- **Side effects**: none. If a feature needs I/O, isolate it in its own module behind a small
-  interface and record the choice in an ADR.
-
-## Quality contract
-
-`scripts/check.py` is the single definition of the gates; `fabrica.json` tells the factory and CI
-how to run it. See [TESTING.md](TESTING.md).
-
-## Decisions
-
-Architecture decisions are recorded in [decisions/](decisions/) as numbered ADRs.
+- **Pre-flight File Size Checks**: Every operation checks file size against `max_file_bytes` (default 1 GiB) via `os.stat` before invoking PyArrow's underlying C++ parsers.
+- **Bounded Streaming**: Row iterations and conversions are streamed with `iter_batches` and bounded via `max_rows` to prevent unbounded memory consumption or OOM failures on massive files.
+- **Data-Driven Nullability Validation**: When column statistics are missing in metadata, validation falls back to targeted single-column reads rather than reading entire tables.

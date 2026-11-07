@@ -17,7 +17,12 @@ classifiers = [
     "Operating System :: OS Independent",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "pyarrow>=23.0.1,<24",
+]
+
+[project.scripts]
+parquet-tools = "parquet_tools.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/Trysac/u167-parquet-tools"
