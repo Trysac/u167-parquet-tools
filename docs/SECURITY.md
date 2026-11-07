@@ -1,19 +1,10 @@
-# Security notes
+# Security
 
-## Threat model
+## Threat Model
 
-`trysac-parquet-tools` is a pure library without I/O. The main risks are:
+### Defended
+- **Memory Exhaustion**: The tool mitigates OOM failures by enforcing file size limits via `os.stat` before parsing, and by streaming records using batching and configurable `max_rows` thresholds.
+- **Invalid Inputs**: Malformed or corrupt files are caught during the `pyarrow` open/read phase and sanitized into standard `ParquetToolError` exceptions with deterministic error codes (e.g., `invalid_parquet`).
 
-- **Supply chain**: a compromised dependency or CI action. Mitigation: no runtime dependencies,
-  Dependabot weekly updates, actions pinned to major versions, minimal workflow permissions.
-- **Leaked secrets**: tokens committed by mistake. Mitigation: `gitleaks` runs in the local gates
-  and in CI; `.env` files are git-ignored.
-- **Untrusted input**: callers may pass hostile strings. Mitigation: validate input and fail with
-  explicit exceptions; never `eval`, `exec` or deserialize untrusted data.
-
-## Publishing
-
-Releases are published to PyPI with trusted publishing (OIDC) when available, never with a
-long-lived token stored in the repository.
-
-To report a vulnerability, see [SECURITY.md](../SECURITY.md).
+### Not Defended
+- **Malicious Binary Files**: Parquet files are binary files parsed directly by the underlying `pyarrow` C++ parser. As this parser is complex, we assume users only process files from trusted sources. No exploit-prevention for vulnerabilities within the C++ parser is provided.

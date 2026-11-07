@@ -9,4 +9,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Add parquet-tools library and CLI for inspecting, validating, streaming, and converting Parquet files with bounded memory.
 - Initial project structure from the factory utility template.
