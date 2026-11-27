@@ -7,8 +7,10 @@ Data engineers frequently receive Parquet files from external sources and requir
 
 ## Installation
 
+Not published to PyPI yet. Install it from GitHub:
+
 ```bash
-pip install trysac-parquet-tools
+pip install "git+https://github.com/Trysac/u167-parquet-tools"
 ```
 
 ## Usage Example
